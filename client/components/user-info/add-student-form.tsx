@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/react-hooks';
 import { Box, Grid, TextField } from '@material-ui/core';
-import { addBreadcrumb, captureException } from 'cl-sentry';
+import { addBreadcrumb, captureException } from 'sentry';
 import React from 'react';
 import ReactAvatarEditor from 'react-avatar-editor';
 import { MutationArgs } from '../../../types';
@@ -12,8 +12,8 @@ import {
   UserChildrenResponse
 } from '../../graphql/user-queries';
 import { birthYearProps, childNameProps } from '../../lib/input-fields';
-import CLButton from '../cl-button';
-import CLTextInput from '../cl-text-input';
+import CLButton from '../button';
+import CLTextInput from '../text-input';
 import PhotoEditor from '../pictures/photo-editor';
 
 type Data = {
@@ -110,9 +110,9 @@ export default function AddStudentForm({ onCompleted, submitLabel }: Props) {
 
           <CLTextInput
             {...birthYearProps}
-            required
             fullWidth
             margin="normal"
+            helperText="Our class is best for student grade 2 and above"
             value={year}
             errors={errors}
             onChange={evt => {
@@ -155,7 +155,12 @@ export default function AddStudentForm({ onCompleted, submitLabel }: Props) {
         </Grid>
       </Grid>
       <Box mt={3} textAlign="right">
-        <CLButton loading={addResult.loading} color="primary" variant="contained">
+        <CLButton
+          loading={addResult.loading}
+          color="primary"
+          variant="contained"
+          className="next_btn"
+        >
           {submitLabel}
         </CLButton>
       </Box>

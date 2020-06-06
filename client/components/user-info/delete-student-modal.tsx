@@ -10,7 +10,7 @@ import {
   RemoveStudentMutation,
   UserChildrenResponse
 } from '../../graphql/user-queries';
-import CLButton from '../cl-button';
+import CLButton from '../button';
 import ModalWrapper from '../modal-wrapper';
 
 interface Pros {

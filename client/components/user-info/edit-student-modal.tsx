@@ -7,8 +7,8 @@ import { transformGraphqlError } from '../../graphql/apollo';
 import { Student } from '../../graphql/data-models';
 import { EditStudentMutation } from '../../graphql/user-queries';
 import { birthYearProps, childNameProps } from '../../lib/input-fields';
-import CLButton from '../cl-button';
-import CLTextInput from '../cl-text-input';
+import CLButton from '../button';
+import CLTextInput from '../text-input';
 import ModalWrapper from '../modal-wrapper';
 import PhotoEditor from '../pictures/photo-editor';
 

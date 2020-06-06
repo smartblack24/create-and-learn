@@ -13,8 +13,7 @@ export class DeeplinkProvider extends React.Component<
     this.state = {
       email: this.getValue('email'),
       name: this.getValue('name'),
-      coupon: this.getValue('coupon'),
-      source: this.getValue('source')
+      coupon: this.getValue('coupon')
     };
   }
 

@@ -2,20 +2,15 @@ import { Step, StepLabel, Stepper, Typography } from '@material-ui/core';
 import { ApolloError } from 'apollo-client';
 import React from 'react';
 import { useAlert } from 'react-alert';
-import {
-  applyCredit,
-  applyPromo,
-  getTotalPriceInCents,
-  PriceBreakdown
-} from '../../shared/pricing';
+import { getPriceBreakdown, PriceBreakdown } from '../../shared/pricing';
 import { Promotion } from '../../types/common';
 import { parseErrorMessage } from '../graphql/apollo';
-import { ClassWithCourse } from '../graphql/data-models';
+import { ClassWithCourse, Student } from '../graphql/data-models';
 import { GetUserWithClassResponse } from '../graphql/enrollment-queries';
 import { logEvent } from '../lib/analytics';
 
 interface InputProps extends GetUserWithClassResponse {
-  wholeSeries: boolean;
+  wholePackage?: boolean;
   children: React.ReactNode;
 }
 
@@ -26,11 +21,10 @@ interface ContextProps {
   coupon?: Promotion;
   resetCoupon: () => void;
   setCoupon: (coupon?: Promotion) => void;
-  studentId: string;
-  selectStudent: (studentId: string) => void;
+  student: Student;
+  selectStudent: (student: Student) => void;
   handleError: (err: ApolloError) => void;
-  addons: ClassWithCourse[];
-  isBundle: boolean;
+  klasses: ClassWithCourse[];
   toggleAddon: (klass: ClassWithCourse, checked: boolean) => void;
   priceBreakdown: PriceBreakdown;
 }
@@ -38,49 +32,60 @@ interface ContextProps {
 const defaultState: any = {};
 export const CheckoutContext = React.createContext<ContextProps>(defaultState);
 
-export function CheckoutProvider(props: InputProps) {
+export function CheckoutProvider({
+  user,
+  wholePackage,
+  klass,
+  children
+}: InputProps) {
   const alert = useAlert();
 
-  let defaultStudentId = '';
-  for (const child of props.user.children) {
-    if (props.klass.studentIds.indexOf(child.id) < 0) {
-      defaultStudentId = child.id;
+  let defaultStudent: Student = null;
+  for (const child of user.children) {
+    if (klass.studentIds.indexOf(child.id) < 0) {
+      defaultStudent = child;
       break;
     }
   }
 
   const [activeStep, setActiveStep] = React.useState(0);
-  const [studentId, selectStudent] = React.useState(defaultStudentId);
+  const [student, selectStudent] = React.useState(defaultStudent);
   const [coupon, setCoupon] = React.useState<Promotion>();
   const [addons, setAddons] = React.useState(
-    props.wholeSeries ? props.klass.series : []
+    wholePackage && klass.series ? klass.series : []
   );
 
   React.useEffect(() => {
-    logEvent('InitiateCheckout', {
-      content_name: props.klass.course.name,
-      content_ids: [props.klass.courseId],
-      subject: props.klass.course.subjectId
-    });
-
-    if (props.klass.course.offer) {
-      setCoupon(props.klass.course.offer);
+    const courseIds = [klass.courseId];
+    if (wholePackage && klass.series) {
+      logEvent('InitiateCheckout', {
+        content_name: klass.course.subject.name,
+        content_ids: courseIds.concat(klass.series.map(k => k.courseId)),
+        content_type: 'product_group'
+      });
+    } else {
+      logEvent('InitiateCheckout', {
+        content_name: klass.course.name,
+        content_ids: courseIds,
+        content_type: 'product'
+      });
     }
-  }, [props.klass]);
 
-  const isBundle = !props.wholeSeries && addons.length > 0;
+    if (klass.offer) {
+      setCoupon(klass.offer);
+    }
+  }, [klass, wholePackage]);
+
   const steps =
-    props.klass.course.price > 0
+    klass.course.price > 0
       ? ['Confirm student', 'Make Payment', 'Complete']
       : ['Confirm student', 'Complete'];
 
-  let title = props.wholeSeries
-    ? `${props.klass.course.subject.name} (Units 1 - ${props.klass.course.subject.exitLevel})`
-    : `${props.klass.course.name} Class`;
+  const title = wholePackage
+    ? `${klass.course.subject.name} (Units 1 - ${klass.course.subject.exitLevel})`
+    : `${klass.course.name} Class`;
 
-  if (activeStep === steps.length - 1) {
-    title = `Your ${title} is Confirmed`;
-  }
+  const klasses = [klass, ...addons];
 
   return (
     <>
@@ -110,17 +115,15 @@ export function CheckoutProvider(props: InputProps) {
           coupon,
           setCoupon,
           resetCoupon() {
-            setCoupon(props.klass.course.offer);
+            setCoupon(klass.offer);
           },
-          studentId,
+          student,
           selectStudent,
           handleError(err) {
             alert.error(parseErrorMessage(err), {
               timeout: 8000
             });
           },
-          isBundle,
-          addons,
           toggleAddon(klass, checked) {
             const filtered = addons.filter(cls => cls.id !== klass.id);
             if (checked) {
@@ -128,61 +131,25 @@ export function CheckoutProvider(props: InputProps) {
             }
             setAddons(filtered);
           },
+          klasses,
           priceBreakdown:
-            props.klass.course.price === 0
-              ? { price: 0, usedCredit: 0, appliedDiscount: 0 }
-              : getPriceBreakdown({
-                  klass: props.klass,
-                  addons,
-                  balanceInCents: props.user.balanceInCents,
+            klass.course.price === 0
+              ? {
+                  listingPrice: 0,
+                  price: 0,
+                  usedCredit: 0,
+                  promoDiscount: 0,
+                  courseDiscount: 0
+                }
+              : getPriceBreakdown(klasses, {
+                  balanceInCents: user.balanceInCents,
                   promotion: coupon,
-                  isBundle,
-                  wholeSeries: props.wholeSeries
+                  wholePackage
                 })
         }}
       >
-        {props.children}
+        {children}
       </CheckoutContext.Provider>
     </>
   );
-}
-
-// scenario 1, user buys a single class for $129
-// scenario 2, user buys multiple level classes for $129 * count, this is the old upsale flow
-// scenario 3, user buys the whole series for $95 * count, this is the new course price
-export function getPriceBreakdown(opts: {
-  klass: ClassWithCourse;
-  addons: ClassWithCourse[];
-  balanceInCents: number;
-  promotion?: Promotion;
-  isBundle: boolean;
-  wholeSeries: boolean;
-}): PriceBreakdown {
-  let price = getTotalPriceInCents([opts.klass, ...opts.addons], {
-    wholeSeries: opts.wholeSeries
-  });
-
-  let usedCredit = 0;
-  let appliedDiscount = 0;
-
-  if (price > 0 && opts.promotion) {
-    const pc = applyPromo(price, opts.promotion, {
-      isBundle: opts.isBundle,
-      wholeSeries: opts.wholeSeries
-    });
-    price = pc.result;
-    appliedDiscount = pc.used;
-  }
-
-  if (price > 0 && opts.balanceInCents > 0) {
-    const pc = applyCredit(price, opts.balanceInCents);
-    price = pc.result;
-    usedCredit = pc.used;
-  }
-
-  return {
-    price,
-    usedCredit,
-    appliedDiscount
-  };
 }

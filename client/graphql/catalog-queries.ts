@@ -52,10 +52,10 @@ export interface SubjectListQueryResult {
 export const CourseListQuery = gql`
   ${CourseFragment}
   ${ClassLiteFragment}
-  query($subjectIds: [ID]!, $level: Int!) {
-    courses(subjectIds: $subjectIds, level: $level) {
+  query($ids: [ID]!, $camps: Boolean) {
+    courses(ids: $ids) {
       ...CourseFragment
-      upcomingClasses {
+      upcomingClasses(camps: $camps) {
         ...ClassLiteFragment
       }
     }
@@ -68,4 +68,35 @@ export interface CourseWithClasses extends Course {
 
 export interface CourseListResult {
   courses: CourseWithClasses[];
+}
+
+export const PartnerQuery = gql`
+  ${CourseFragment}
+  ${ClassLiteFragment}
+  query($code: String!) {
+    partner(code: $code) {
+      id
+      name
+      slogan
+      summary
+      bannerImage
+      courses {
+        ...CourseFragment
+        upcomingClasses {
+          ...ClassLiteFragment
+        }
+      }
+    }
+  }
+`;
+
+export interface PartnerQueryResult {
+  partner: {
+    id: string;
+    name: string;
+    slogan: string;
+    summary: string;
+    bannerImage: string;
+    courses: CourseWithClasses[];
+  };
 }

@@ -9,3 +9,6 @@ export const segmentOpts: { key: string; enabled: boolean } =
 
 export const sentryOpts: { dsn: string; enabled: boolean; environment?: string } =
   publicRuntimeConfig.sentry;
+
+export const chatbotOpts: { token: string; enabled: boolean } =
+  publicRuntimeConfig.chatbot;

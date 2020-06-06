@@ -1,17 +1,18 @@
 import {
-  Avatar,
   Button,
   Card,
   CardHeader,
   CardMedia,
-  IconButton
+  IconButton,
+  useTheme
 } from '@material-ui/core';
-import { useTheme } from '@material-ui/core/styles';
 import { MoreVert } from '@material-ui/icons';
-import { defaultAvatarUrl } from 'cl-common';
 import React from 'react';
 import { defaultCoverUrl } from '../../../shared/constants';
 import { Student } from '../../graphql/data-models';
+import { getMyClassesLink } from '../../lib/url-utils';
+import NextMUILink from '../next-mui-link';
+import UserAvatar from '../user-avatar';
 import DeleteStudentModal from './delete-student-modal';
 import EditCoverModal from './edit-cover-modal';
 import EditStudentModal from './edit-student-modal';
@@ -27,22 +28,6 @@ export default function StudentCards(props: { student: Student }) {
   const theme = useTheme();
   const [mode, setMode] = React.useState(ModalMode.default);
   const onClose = () => setMode(ModalMode.default);
-
-  const subheaders = [];
-
-  if (props.student.gender === 'male') {
-    subheaders.push('A boy');
-  } else if (props.student.gender === 'female') {
-    subheaders.push('A girl');
-  }
-
-  if (props.student.age) {
-    subheaders.push(`${props.student.age} years old`);
-  }
-
-  if (props.student.school) {
-    subheaders.push(props.student.school);
-  }
 
   return (
     <Card>
@@ -62,7 +47,7 @@ export default function StudentCards(props: { student: Student }) {
       <CardMedia
         image={props.student.cover || defaultCoverUrl}
         style={{
-          height: 196,
+          height: 160,
           position: 'relative'
         }}
       >
@@ -80,13 +65,17 @@ export default function StudentCards(props: { student: Student }) {
         </Button>
       </CardMedia>
       <CardHeader
-        avatar={<Avatar src={props.student.avatar || defaultAvatarUrl} />}
-        title={props.student.name}
-        titleTypographyProps={{
-          noWrap: true,
-          variant: 'h6'
-        }}
-        subheader={subheaders.join(', ')}
+        avatar={<UserAvatar user={props.student} />}
+        title={
+          <NextMUILink
+            next={getMyClassesLink(props.student)}
+            color="secondary"
+            variant="h6"
+            noWrap
+          >
+            {props.student.name}
+          </NextMUILink>
+        }
         action={
           <IconButton onClick={() => setMode(ModalMode.editProfile)}>
             <MoreVert />

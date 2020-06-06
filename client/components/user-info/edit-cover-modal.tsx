@@ -5,7 +5,7 @@ import ReactAvatarEditor from 'react-avatar-editor';
 import { MutationArgs } from '../../../types';
 import { Student } from '../../graphql/data-models';
 import { EditStudentMutation } from '../../graphql/user-queries';
-import CLButton from '../cl-button';
+import CLButton from '../button';
 import ModalWrapper from '../modal-wrapper';
 import PhotoEditor from '../pictures/photo-editor';
 

@@ -1,7 +1,7 @@
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { ApolloClient, ApolloError } from 'apollo-client';
 import { HttpLink } from 'apollo-link-http';
-import { commonRoutes } from 'cl-common';
+import { commonRoutes } from 'common';
 import { IncomingHttpHeaders } from 'http';
 import isBrowser from 'is-browser';
 import { serverPort } from '../runtime';
